@@ -37,41 +37,26 @@
             display: flex; flex-direction: column; align-items: center;
         }
 
-        .qr-stage { min-height: 300px; justify-content: center; }
+        .qr-stage { min-height: 280px; justify-content: center; }
         
         #qrcode-wrap {
-            padding: 10px; background: #fff; border-radius: 12px;
+            padding: 12px; background: #fff; border-radius: 12px;
             display: none; margin-bottom: 20px;
         }
         #qrcode-wrap.active { display: block; }
         
         #qr-target img, #qr-target canvas { 
-            max-width: 100%; height: auto !important; 
+            max-width: 100% !important; height: auto !important; 
             display: block; margin: 0 auto;
         }
 
         .placeholder { color: var(--muted); font-size: 0.8rem; text-align: center; }
 
-        .btn-group { display: none; width: 100%; gap: 10px; }
-        .btn-group.active { display: flex; }
-
-        .btn {
-            flex: 1; padding: 16px; border: none; border-radius: 12px;
-            font-size: 0.75rem; font-weight: 800; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
+        .btn-save {
+            display: none; width: 100%; padding: 16px; background: var(--primary); color: var(--primary-fg);
+            border: none; border-radius: 12px; font-size: 0.8rem; font-weight: 800; cursor: pointer;
         }
-        .btn-main { background: var(--primary); color: var(--primary-fg); }
-        .btn-sub { background: #27272a; color: white; }
-
-        .modal {
-            position: fixed; inset: 0; z-index: 999;
-            background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-            display: none; align-items: center; justify-content: center; padding: 20px;
-        }
-        .modal.open { display: flex; }
-        .modal-box { width: 100%; max-width: 320px; background: white; padding: 10px; border-radius: 15px; position: relative; }
-        .modal-box img { width: 100%; height: auto; display: block; }
-        .close-btn { position: absolute; top: -50px; right: 0; color: white; font-size: 40px; background: none; border: none; cursor: pointer; }
+        .btn-save.active { display: block; }
 
         textarea {
             width: 100%; height: 100px; padding: 15px; background: #202024; color: white;
@@ -79,7 +64,7 @@
             resize: none; outline: none; margin-bottom: 10px; -webkit-appearance: none;
         }
         .btn-gen {
-            width: 100%; padding: 18px; background: var(--primary); color: var(--primary-fg);
+            width: 100%; padding: 18px; background: #27272a; color: white;
             border: none; border-radius: 12px; font-size: 0.9rem; font-weight: 900; cursor: pointer;
         }
 
@@ -88,29 +73,19 @@
             width: 100%; display: flex; justify-content: space-between; align-items: center; 
             padding: 15px 0; border-bottom: 1px solid var(--border);
         }
-        .hist-text { font-size: 0.8rem; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
+        .hist-text { font-size: 0.8rem; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 75%; }
         .btn-sm { background: #27272a; border: none; color: white; padding: 8px 15px; border-radius: 8px; font-size: 10px; font-weight: 700; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div id="modal" class="modal" onclick="closeM()">
-    <div class="modal-box" onclick="event.stopPropagation()">
-        <button class="close-btn" onclick="closeM()">&times;</button>
-        <img id="m-img" src="">
-    </div>
-</div>
-
 <div class="container">
-    <h1>QR Code Generator</h1>
+    <h1>QR Code</h1>
 
     <div class="card qr-stage">
-        <p id="hint" class="placeholder">Enter text below to generate QR</p>
+        <p id="hint" class="placeholder">QR will appear here</p>
         <div id="qrcode-wrap"><div id="qr-target"></div></div>
-        <div id="btns" class="btn-group">
-            <button class="btn btn-sub" onclick="openM()"><i class="fa-solid fa-expand"></i> VIEW</button>
-            <button class="btn btn-main" onclick="dl()"><i class="fa-solid fa-download"></i> SAVE</button>
-        </div>
+        <button class="btn-save" id="btn-save" onclick="dl()">SAVE IMAGE</button>
     </div>
 
     <div class="card">
@@ -131,13 +106,11 @@
     const input = document.getElementById('input');
     const target = document.getElementById('qr-target');
     const wrap = document.getElementById('qrcode-wrap');
-    const btns = document.getElementById('btns');
+    const btnSave = document.getElementById('btn-save');
     const hint = document.getElementById('hint');
     const hList = document.getElementById('h-list');
-    const modal = document.getElementById('modal');
-    const mImg = document.getElementById('m-img');
 
-    let history = JSON.parse(localStorage.getItem('andu_cache_v2')) || [];
+    let history = JSON.parse(localStorage.getItem('andu_cache_v3')) || [];
 
     function gen() {
         const val = input.value.trim();
@@ -154,37 +127,22 @@
     function render(text) {
         target.innerHTML = "";
         hint.style.display = "none";
-        
         wrap.classList.add('active');
-        btns.classList.add('active');
+        btnSave.classList.add('active');
 
         new QRCode(target, {
             text: text,
-            width: 256,
-            height: 256,
+            width: 512,
+            height: 512,
             correctLevel: QRCode.CorrectLevel.H
         });
     }
 
-    function openM() {
-        const img = target.querySelector('img');
-        if (img && img.src) {
-            mImg.src = img.src;
-            modal.classList.add('open');
-        }
-    }
-
-    function closeM() { modal.classList.remove('open'); }
-
-    async function dl() {
-        const img = target.querySelector('img');
+    function dl() {
         const canvas = target.querySelector('canvas');
-        if (!img && !canvas) return;
+        if (!canvas) return;
 
-        let dataUrl = img ? img.src : canvas.toDataURL("image/png");
-
-        try {
-            const blob = await (await fetch(dataUrl)).blob();
+        canvas.toBlob((blob) => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -193,12 +151,7 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-        } catch (e) {
-            const a = document.createElement('a');
-            a.href = dataUrl;
-            a.download = "qr_code.png";
-            a.click();
-        }
+        }, 'image/png');
     }
 
     function clearH() {
@@ -207,13 +160,13 @@
             save();
             hint.style.display = "block";
             wrap.classList.remove('active');
-            btns.classList.remove('active');
+            btnSave.classList.remove('active');
         }
     }
 
     function save() {
-        localStorage.setItem('andu_cache_v2', JSON.stringify(history));
-        hList.innerHTML = history.map((t, i) => `
+        localStorage.setItem('andu_cache_v3', JSON.stringify(history));
+        hList.innerHTML = history.map((t) => `
             <div class="hist-item">
                 <div class="hist-text">${t}</div>
                 <button class="btn-sm" onclick="render('${t.replace(/'/g, "\\'")}')">VIEW</button>
