@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Generate QR Code</title>
+    <title>AnduDevs | QR</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="../qr.ico">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -17,240 +17,219 @@
             --primary: #ffffff;
             --primary-fg: #000000;
             --danger: #ef4444;
-            --radius-lg: 24px;
-            --radius-md: 16px;
-            --radius-sm: 12px;
+            --radius: 16px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, system-ui, sans-serif;
             background-color: var(--bg); color: var(--text);
-            min-height: 100dvh; display: flex; justify-content: center;
-            padding: 24px 16px; overflow-y: auto;
+            min-height: 100dvh; padding: 20px 15px;
+            display: flex; justify-content: center;
         }
 
-        .container { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 20px; }
-        header h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+        .container { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; }
+        h1 { font-size: 1.4rem; font-weight: 800; margin-bottom: 5px; }
 
-        .card { background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .card { 
+            background: var(--card); border: 1px solid var(--border); 
+            border-radius: var(--radius); padding: 20px; 
+            display: flex; flex-direction: column; align-items: center;
+        }
 
-        /* QR DISPLAY AREA */
-        .qr-stage { min-height: 320px; justify-content: center; position: relative; }
+        .qr-stage { min-height: 280px; justify-content: center; }
         
         #qrcode-wrap {
-            padding: 12px; background: #fff; border-radius: var(--radius-md);
-            display: none; line-height: 0; margin-bottom: 20px;
+            padding: 10px; background: #fff; border-radius: 12px;
+            display: none; margin-bottom: 15px;
         }
         #qrcode-wrap.active { display: block; }
-        #qrcode-wrap img { width: 200px; height: 200px; }
+        
+        #qr-target img { 
+            max-width: 100%; height: auto !important; 
+            image-rendering: pixelated; 
+        }
 
-        .placeholder { color: var(--muted); font-size: 0.85rem; text-align: center; }
+        .placeholder { color: var(--muted); font-size: 0.8rem; text-align: center; opacity: 0.6; }
 
-        /* ACTION BUTTONS */
-        .actions-row { display: none; width: 100%; gap: 10px; }
-        .actions-row.active { display: flex; }
+        .btn-group { display: none; width: 100%; gap: 10px; }
+        .btn-group.active { display: flex; }
 
-        .btn-action {
-            flex: 1; padding: 14px; border-radius: var(--radius-sm); border: none;
+        .btn {
+            flex: 1; padding: 14px; border: none; border-radius: 10px;
             font-size: 0.75rem; font-weight: 700; cursor: pointer;
             display: flex; align-items: center; justify-content: center; gap: 8px;
-            transition: opacity 0.2s;
         }
-        .btn-save { background: var(--primary); color: var(--primary-fg); }
-        .btn-view { background: #27272a; color: white; }
-        .btn-action:active { opacity: 0.7; transform: scale(0.98); }
+        .btn-main { background: var(--primary); color: var(--primary-fg); }
+        .btn-sub { background: #27272a; color: white; }
+        .btn:active { transform: scale(0.96); opacity: 0.8; }
 
-        /* MODAL */
         .modal {
-            position: fixed; inset: 0; z-index: 9999;
-            background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            position: fixed; inset: 0; z-index: 999;
+            background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
             display: none; align-items: center; justify-content: center; padding: 20px;
         }
         .modal.open { display: flex; }
-        .modal-content { width: 100%; max-width: 340px; background: #fff; padding: 15px; border-radius: 20px; position: relative; }
-        .modal-content img { width: 100%; height: auto; display: block; image-rendering: pixelated; }
+        .modal-box { width: 100%; max-width: 320px; background: white; padding: 10px; border-radius: 15px; position: relative; }
+        .modal-box img { width: 100%; height: auto; display: block; }
+        .close-btn { position: absolute; top: -50px; right: 0; color: white; font-size: 35px; background: none; border: none; cursor: pointer; }
 
-        .btn-close-modal {
-            position: absolute; top: -50px; right: 0; background: none; color: white; 
-            border: none; font-size: 2rem; cursor: pointer;
-        }
-
-        /* INPUTS */
-        .input-wrapper { position: relative; width: 100%; }
         textarea {
-            width: 100%; height: 100px; padding: 16px; background: #202024; color: var(--text);
-            border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 16px;
-            resize: none; outline: none;
+            width: 100%; height: 90px; padding: 12px; background: #202024; color: white;
+            border: 1px solid var(--border); border-radius: 12px; font-size: 16px;
+            resize: none; outline: none; margin-bottom: 10px; -webkit-appearance: none;
         }
-        
-        .char-count { position: absolute; bottom: 12px; right: 16px; font-size: 0.7rem; color: var(--muted); }
-        .btn-generate {
-            width: 100%; padding: 18px; margin-top: 12px; background: #27272a; color: white;
-            border: none; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 800; cursor: pointer;
+        .btn-gen {
+            width: 100%; padding: 15px; background: #27272a; color: white;
+            border: none; border-radius: 12px; font-size: 0.9rem; font-weight: 800; cursor: pointer;
         }
-        .btn-generate:active { background: #3f3f46; }
+        .btn-gen:active { background: #3f3f46; }
 
-        /* HISTORY */
-        .history-header { display: flex; justify-content: space-between; width: 100%; margin-bottom: 12px; align-items: center; }
-        .history-title { font-size: 0.75rem; color: var(--muted); font-weight: 700; }
-        .history-list { display: flex; flex-direction: column; gap: 8px; width: 100%; }
-        .history-item { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 12px; background: #000; border: 1px solid var(--border); border-radius: var(--radius-sm); 
+        .history-list { width: 100%; display: flex; flex-direction: column; }
+        .hist-item { 
+            width: 100%; display: flex; justify-content: space-between; align-items: center; 
+            padding: 12px 0; border-bottom: 1px solid var(--border);
         }
-        .item-text { font-size: 0.8rem; color: #ccc; max-width: 65%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .btn-mini-view { background: #27272a; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 0.7rem; font-weight: 600; }
+        .hist-item:last-child { border: none; }
+        .hist-text { font-size: 0.8rem; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
+        .btn-sm { background: #27272a; border: none; color: white; padding: 6px 12px; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div id="qr-modal" class="modal" onclick="closeModal()">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <button class="btn-close-modal" onclick="closeModal()">&times;</button>
-        <img id="modal-img" src="" alt="QR">
+<div id="modal" class="modal" onclick="closeM()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <button class="close-btn" onclick="closeM()">&times;</button>
+        <img id="m-img" src="">
     </div>
 </div>
 
-<main class="container">
-    <header><h1>andudevs</h1></header>
+<div class="container">
+    <h1>andudevs</h1>
 
-    <section class="card qr-stage">
-        <span id="placeholder" class="placeholder">QR code will appear here</span>
-        
-        <div id="qrcode-wrap">
-            <div id="qr-target"></div>
+    <div class="card qr-stage">
+        <p id="hint" class="placeholder">QR code will appear here</p>
+        <div id="qrcode-wrap"><div id="qr-target"></div></div>
+        <div id="btns" class="btn-group">
+            <button class="btn btn-sub" onclick="openM()"><i class="fa-solid fa-expand"></i> VIEW</button>
+            <button class="btn btn-main" onclick="dl()"><i class="fa-solid fa-download"></i> SAVE</button>
         </div>
+    </div>
 
-        <div class="actions-row" id="actions-row">
-            <button class="btn-action btn-view" onclick="openModal()">
-                <i class="fa-solid fa-expand"></i> VIEW
-            </button>
-            <button class="btn-action btn-save" onclick="downloadImage()">
-                <i class="fa-solid fa-download"></i> SAVE
-            </button>
-        </div>
-    </section>
+    <div class="card">
+        <textarea id="input" placeholder="Enter text or URL..."></textarea>
+        <button class="btn-gen" onclick="gen()">GENERATE QR</button>
+    </div>
 
-    <section class="card">
-        <div class="input-wrapper">
-            <textarea id="text-input" maxlength="400" placeholder="Paste link or text..."></textarea>
-            <div class="char-count" id="char-count">0 / 400</div>
+    <div class="card" style="align-items: flex-start;">
+        <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:10px; align-items:center;">
+            <span style="font-size: 0.7rem; font-weight: 800; color: var(--muted);">HISTORY</span>
+            <button style="background:none; border:none; color:var(--danger); font-size:0.7rem; font-weight:700; cursor:pointer;" onclick="clearH()">CLEAR</button>
         </div>
-        <button class="btn-generate" onclick="handleGenerate()">GENERATE</button>
-    </section>
-
-    <section class="card">
-        <div class="history-header">
-            <span class="history-title">History</span>
-            <button style="background:none; border:none; color:var(--danger); font-size:0.7rem; font-weight:700;" onclick="handleClearAll()">CLEAR</button>
-        </div>
-        <div class="history-list" id="history-list"></div>
-    </section>
-</main>
+        <div id="h-list" class="history-list"></div>
+    </div>
+</div>
 
 <script>
-    const inputEl = document.getElementById('text-input');
-    const qrTarget = document.getElementById('qr-target');
-    const qrWrap = document.getElementById('qrcode-wrap');
-    const actionsRow = document.getElementById('actions-row');
-    const placeholder = document.getElementById('placeholder');
-    const historyList = document.getElementById('history-list');
-    const modal = document.getElementById('qr-modal');
-    
-    let historyData = JSON.parse(localStorage.getItem('andu_qr_cache')) || [];
+    const input = document.getElementById('input');
+    const target = document.getElementById('qr-target');
+    const wrap = document.getElementById('qrcode-wrap');
+    const btns = document.getElementById('btns');
+    const hint = document.getElementById('hint');
+    const hList = document.getElementById('h-list');
+    const modal = document.getElementById('modal');
+    const mImg = document.getElementById('m-img');
 
-    inputEl.addEventListener('input', () => {
-        document.getElementById('char-count').textContent = `${inputEl.value.length} / 400`;
-    });
+    let history = JSON.parse(localStorage.getItem('andu_cache')) || [];
 
-    function handleGenerate() {
-        const text = inputEl.value.trim();
-        if (!text) return;
-        
-        if (historyData[0] !== text) {
-            historyData.unshift(text);
-            if (historyData.length > 15) historyData.pop();
-            saveAndRender();
+    function gen() {
+        const val = input.value.trim();
+        if (!val) return;
+        if (history[0] !== val) {
+            history.unshift(val);
+            if (history.length > 10) history.pop();
+            save();
         }
-        
-        inputEl.value = "";
-        document.getElementById('char-count').textContent = "0 / 400";
-        renderQR(text);
+        input.value = "";
+        render(val);
     }
 
-    function renderQR(text) {
-        qrTarget.innerHTML = "";
-        placeholder.style.display = "none";
-        qrWrap.classList.remove('active');
-        actionsRow.classList.remove('active');
+    function render(text) {
+        target.innerHTML = "";
+        hint.style.display = "none";
+        wrap.classList.remove('active');
+        btns.classList.remove('active');
 
-        new QRCode(qrTarget, {
+        new QRCode(target, {
             text: text,
             width: 256,
             height: 256,
             correctLevel: QRCode.CorrectLevel.H
         });
 
-        // Ensure the image is rendered before showing buttons
-        const checkReady = setInterval(() => {
-            const img = qrTarget.querySelector('img');
+        const check = setInterval(() => {
+            const img = target.querySelector('img');
             if (img && img.src && img.src.length > 100) {
-                qrWrap.classList.add('active');
-                actionsRow.classList.add('active');
-                clearInterval(checkReady);
+                wrap.classList.add('active');
+                btns.classList.add('active');
+                clearInterval(check);
             }
-        }, 100);
+        }, 50);
     }
 
-    function openModal() {
-        const img = qrTarget.querySelector('img');
-        if (img && img.src) {
-            document.getElementById('modal-img').src = img.src;
+    function openM() {
+        const img = target.querySelector('img');
+        if (img) {
+            mImg.src = img.src;
             modal.classList.add('open');
         }
     }
 
-    function closeModal() {
-        modal.classList.remove('open');
-    }
+    function closeM() { modal.classList.remove('open'); }
 
-    function downloadImage() {
-        const img = qrTarget.querySelector('img');
-        if (!img || !img.src) return;
-
-        const link = document.createElement('a');
-        link.href = img.src;
-        link.download = `QR_${Date.now()}.png`;
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    function handleClearAll() {
-        if(confirm("Clear history?")) {
-            historyData = [];
-            saveAndRender();
-            qrTarget.innerHTML = "";
-            qrWrap.classList.remove('active');
-            actionsRow.classList.remove('active');
-            placeholder.style.display = "block";
+    async function dl() {
+        const img = target.querySelector('img');
+        if (!img) return;
+        try {
+            const blob = await (await fetch(img.src)).blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `QR_${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            const a = document.createElement('a');
+            a.href = img.src;
+            a.download = "qr.png";
+            a.click();
         }
     }
 
-    function saveAndRender() {
-        localStorage.setItem('andu_qr_cache', JSON.stringify(historyData));
-        historyList.innerHTML = historyData.map((item, index) => `
-            <div class="history-item">
-                <div class="item-text">${item}</div>
-                <button class="btn-mini-view" onclick="renderQR('${item.replace(/'/g, "\\'")}')">VIEW</button>
+    function clearH() {
+        if (confirm("Clear all?")) {
+            history = [];
+            save();
+            hint.style.display = "block";
+            wrap.classList.remove('active');
+            btns.classList.remove('active');
+        }
+    }
+
+    function save() {
+        localStorage.setItem('andu_cache', JSON.stringify(history));
+        hList.innerHTML = history.map((t, i) => `
+            <div class="hist-item">
+                <div class="hist-text">${t}</div>
+                <button class="btn-sm" onclick="render('${t.replace(/'/g, "\\'")}')">VIEW</button>
             </div>
         `).join('');
     }
 
-    saveAndRender();
+    save();
 </script>
 </body>
 </html>
