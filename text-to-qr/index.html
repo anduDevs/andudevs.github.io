@@ -148,6 +148,8 @@
     const btnDownload = document.getElementById('btn-download');
     const placeholder = document.getElementById('placeholder');
     const historyList = document.getElementById('history-list');
+    const modal = document.getElementById('qr-modal');
+    const modalImg = document.getElementById('modal-img');
     
     let historyData = JSON.parse(localStorage.getItem('ttqr_data')) || [];
 
@@ -168,40 +170,63 @@
     function renderQR(text) {
         qrTarget.innerHTML = "";
         placeholder.style.display = "none";
+        
+        // Generate QR
         new QRCode(qrTarget, {
             text: text,
-            width: 200,
-            height: 200,
+            width: 256,
+            height: 256,
             correctLevel: QRCode.CorrectLevel.H
         });
         
-        // Wait for qrcode.js to finish drawing the img tag
-        setTimeout(() => {
+        // Wait for the IMG to actually be created by the library
+        const checkExist = setInterval(() => {
             const img = qrTarget.querySelector('img');
-            if(img) {
+            if (img && img.src) {
                 qrWrap.classList.add('active');
                 btnDownload.style.display = "block";
+                clearInterval(checkExist);
             }
         }, 100);
     }
 
+    // FIX: Click to Enlarge
     function openModal() {
         const img = qrTarget.querySelector('img');
         if (img && img.src) {
-            document.getElementById('modal-img').src = img.src;
-            document.getElementById('qr-modal').classList.add('open');
+            modalImg.src = img.src;
+            modal.classList.add('open');
         }
     }
 
-    function downloadImage() {
+    // FIX: Force Image Download (Mobile Compatible)
+    async function downloadImage() {
         const img = qrTarget.querySelector('img');
-        if (!img) return;
-        const link = document.createElement('a');
-        link.href = img.src;
-        link.download = `QR_${Date.now()}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        if (!img || !img.src) return;
+
+        try {
+            // Convert Base64 to a real Blob so the phone sees it as a FILE
+            const response = await fetch(img.src);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `QR_${Date.now()}.png`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Cleanup memory
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            // Fallback for very old browsers
+            const link = document.createElement('a');
+            link.href = img.src;
+            link.download = 'qrcode.png';
+            link.click();
+        }
     }
 
     function handleClearAll() {
