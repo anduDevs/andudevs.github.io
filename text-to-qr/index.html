@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Generate QR Code</title>
+    <title>AnduDevs | QR</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="../qr.ico">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -16,7 +16,6 @@
             --muted: #a1a1aa;
             --primary: #ffffff;
             --primary-fg: #000000;
-            --danger: #ef4444;
             --radius: 16px;
         }
 
@@ -30,7 +29,7 @@
         }
 
         .container { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; }
-        h1 { font-size: 1.4rem; font-weight: 800; margin-bottom: 5px; }
+        h1 { font-size: 1.4rem; font-weight: 800; }
 
         .card { 
             background: var(--card); border: 1px solid var(--border); 
@@ -38,32 +37,31 @@
             display: flex; flex-direction: column; align-items: center;
         }
 
-        .qr-stage { min-height: 280px; justify-content: center; }
+        .qr-stage { min-height: 300px; justify-content: center; }
         
         #qrcode-wrap {
             padding: 10px; background: #fff; border-radius: 12px;
-            display: none; margin-bottom: 15px;
+            display: none; margin-bottom: 20px;
         }
         #qrcode-wrap.active { display: block; }
         
-        #qr-target img { 
+        #qr-target img, #qr-target canvas { 
             max-width: 100%; height: auto !important; 
-            image-rendering: pixelated; 
+            display: block; margin: 0 auto;
         }
 
-        .placeholder { color: var(--muted); font-size: 0.8rem; text-align: center; opacity: 0.6; }
+        .placeholder { color: var(--muted); font-size: 0.8rem; text-align: center; }
 
         .btn-group { display: none; width: 100%; gap: 10px; }
         .btn-group.active { display: flex; }
 
         .btn {
-            flex: 1; padding: 14px; border: none; border-radius: 10px;
-            font-size: 0.75rem; font-weight: 700; cursor: pointer;
+            flex: 1; padding: 16px; border: none; border-radius: 12px;
+            font-size: 0.75rem; font-weight: 800; cursor: pointer;
             display: flex; align-items: center; justify-content: center; gap: 8px;
         }
         .btn-main { background: var(--primary); color: var(--primary-fg); }
         .btn-sub { background: #27272a; color: white; }
-        .btn:active { transform: scale(0.96); opacity: 0.8; }
 
         .modal {
             position: fixed; inset: 0; z-index: 999;
@@ -73,27 +71,25 @@
         .modal.open { display: flex; }
         .modal-box { width: 100%; max-width: 320px; background: white; padding: 10px; border-radius: 15px; position: relative; }
         .modal-box img { width: 100%; height: auto; display: block; }
-        .close-btn { position: absolute; top: -50px; right: 0; color: white; font-size: 35px; background: none; border: none; cursor: pointer; }
+        .close-btn { position: absolute; top: -50px; right: 0; color: white; font-size: 40px; background: none; border: none; cursor: pointer; }
 
         textarea {
-            width: 100%; height: 90px; padding: 12px; background: #202024; color: white;
+            width: 100%; height: 100px; padding: 15px; background: #202024; color: white;
             border: 1px solid var(--border); border-radius: 12px; font-size: 16px;
             resize: none; outline: none; margin-bottom: 10px; -webkit-appearance: none;
         }
         .btn-gen {
-            width: 100%; padding: 15px; background: #27272a; color: white;
-            border: none; border-radius: 12px; font-size: 0.9rem; font-weight: 800; cursor: pointer;
+            width: 100%; padding: 18px; background: var(--primary); color: var(--primary-fg);
+            border: none; border-radius: 12px; font-size: 0.9rem; font-weight: 900; cursor: pointer;
         }
-        .btn-gen:active { background: #3f3f46; }
 
         .history-list { width: 100%; display: flex; flex-direction: column; }
         .hist-item { 
             width: 100%; display: flex; justify-content: space-between; align-items: center; 
-            padding: 12px 0; border-bottom: 1px solid var(--border);
+            padding: 15px 0; border-bottom: 1px solid var(--border);
         }
-        .hist-item:last-child { border: none; }
         .hist-text { font-size: 0.8rem; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
-        .btn-sm { background: #27272a; border: none; color: white; padding: 6px 12px; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer; }
+        .btn-sm { background: #27272a; border: none; color: white; padding: 8px 15px; border-radius: 8px; font-size: 10px; font-weight: 700; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -106,10 +102,10 @@
 </div>
 
 <div class="container">
-    <h1>QR Code Generator</h1>
+    <h1>andudevs</h1>
 
     <div class="card qr-stage">
-        <p id="hint" class="placeholder">QR code will appear here</p>
+        <p id="hint" class="placeholder">Enter text below to generate QR</p>
         <div id="qrcode-wrap"><div id="qr-target"></div></div>
         <div id="btns" class="btn-group">
             <button class="btn btn-sub" onclick="openM()"><i class="fa-solid fa-expand"></i> VIEW</button>
@@ -118,13 +114,13 @@
     </div>
 
     <div class="card">
-        <textarea id="input" placeholder="Enter text or URL..."></textarea>
-        <button class="btn-gen" onclick="gen()">GENERATE QR</button>
+        <textarea id="input" placeholder="Type or paste here..."></textarea>
+        <button class="btn-gen" onclick="gen()">GENERATE</button>
     </div>
 
     <div class="card" style="align-items: flex-start;">
         <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:10px; align-items:center;">
-            <span style="font-size: 0.7rem; font-weight: 800; color: var(--muted);">HISTORY</span>
+            <span style="font-size: 0.7rem; font-weight: 800; color: var(--muted);">RECENT</span>
             <button style="background:none; border:none; color:var(--danger); font-size:0.7rem; font-weight:700; cursor:pointer;" onclick="clearH()">CLEAR</button>
         </div>
         <div id="h-list" class="history-list"></div>
@@ -141,7 +137,7 @@
     const modal = document.getElementById('modal');
     const mImg = document.getElementById('m-img');
 
-    let history = JSON.parse(localStorage.getItem('andu_cache')) || [];
+    let history = JSON.parse(localStorage.getItem('andu_cache_v2')) || [];
 
     function gen() {
         const val = input.value.trim();
@@ -158,8 +154,9 @@
     function render(text) {
         target.innerHTML = "";
         hint.style.display = "none";
-        wrap.classList.remove('active');
-        btns.classList.remove('active');
+        
+        wrap.classList.add('active');
+        btns.classList.add('active');
 
         new QRCode(target, {
             text: text,
@@ -167,20 +164,11 @@
             height: 256,
             correctLevel: QRCode.CorrectLevel.H
         });
-
-        const check = setInterval(() => {
-            const img = target.querySelector('img');
-            if (img && img.src && img.src.length > 100) {
-                wrap.classList.add('active');
-                btns.classList.add('active');
-                clearInterval(check);
-            }
-        }, 50);
     }
 
     function openM() {
         const img = target.querySelector('img');
-        if (img) {
+        if (img && img.src) {
             mImg.src = img.src;
             modal.classList.add('open');
         }
@@ -190,9 +178,13 @@
 
     async function dl() {
         const img = target.querySelector('img');
-        if (!img) return;
+        const canvas = target.querySelector('canvas');
+        if (!img && !canvas) return;
+
+        let dataUrl = img ? img.src : canvas.toDataURL("image/png");
+
         try {
-            const blob = await (await fetch(img.src)).blob();
+            const blob = await (await fetch(dataUrl)).blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -203,14 +195,14 @@
             URL.revokeObjectURL(url);
         } catch (e) {
             const a = document.createElement('a');
-            a.href = img.src;
-            a.download = "qr.png";
+            a.href = dataUrl;
+            a.download = "qr_code.png";
             a.click();
         }
     }
 
     function clearH() {
-        if (confirm("Clear all?")) {
+        if (confirm("Clear history?")) {
             history = [];
             save();
             hint.style.display = "block";
@@ -220,7 +212,7 @@
     }
 
     function save() {
-        localStorage.setItem('andu_cache', JSON.stringify(history));
+        localStorage.setItem('andu_cache_v2', JSON.stringify(history));
         hList.innerHTML = history.map((t, i) => `
             <div class="hist-item">
                 <div class="hist-text">${t}</div>
