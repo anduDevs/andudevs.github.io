@@ -1,1 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loadout Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&display=swap');
+        body { font-family: 'JetBrains Mono', monospace; }
+        .ghost-card { opacity: 0.1; border: 1px dashed #3b82f6 !important; }
+        .click-bounce:active { transform: scale(0.96); }
+        
+        .hover-expand:hover {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            z-index: 99;
+            width: 100%;
+            white-space: normal !important;
+            word-break: break-all;
+            height: auto !important;
+            padding-top: 12px;
+            padding-bottom: 12px;
+            background-color: #0f172a !important;
+            border-color: #3b82f6 !important;
+        }
+    </style>
+</head>
+<body class="bg-[#020617] text-[#f8fafc] min-h-screen p-4 md:p-8 pb-32">
 
+    <div id="app" class="max-w-xl mx-auto">
+        
+        <header class="mb-8 flex justify-between items-center gap-4">
+            <div class="bg-[#0f172a] p-1 rounded border border-[#1e293b] flex gap-1 shadow-md">
+                <button @click="setMode('sts')" :class="['px-4 py-1 text-xs font-bold rounded transition-all click-bounce', mode === 'sts' ? 'bg-white text-[#020617]' : 'text-[#64748b] hover:text-white']">
+                    !sts
+                </button>
+                <button @click="setMode('s')" :class="['px-4 py-1 text-xs font-bold rounded transition-all click-bounce', mode === 's' ? 'bg-white text-[#020617]' : 'text-[#64748b] hover:text-white']">
+                    !s
+                </button>
+            </div>
+
+            <div class="flex gap-1">
+                <input 
+                    type="text" 
+                    v-model="importString" 
+                    placeholder="Paste command..." 
+                    class="bg-[#0f172a] border border-[#1e293b] focus:border-blue-500 text-xs text-[#cbd5e1] px-2.5 py-1.5 rounded focus:outline-none placeholder-[#475569]"
+                    @keydown.enter="decompileCommand"
+                />
+                <button @click="decompileCommand" class="bg-[#1e293b] hover:bg-white hover:text-[#020617] text-white font-bold text-xs px-3 rounded transition-all click-bounce">
+                    PARSE
+                </button>
+            </div>
+        </header>
+
+        <main class="space-y-2" @dragover.prevent @drop="onDrop">
+            
+            <div 
+                v-for="(item, index) in loadout" 
+                :key="item.id"
+                :class="['group transition-all', draggedIndex === index ? 'ghost-card' : '']"
+                @dragover.prevent="onDragOver(index)"
+            >
+                <div class="flex items-center gap-2 py-1">
+                    
+                    <div 
+                        draggable="true"
+                        @dragstart="onDragStart(index, $event)"
+                        @dragend="onDragEnd"
+                        class="text-[#475569] hover:text-blue-500 cursor-grab active:cursor-grabbing select-none text-xs font-bold px-1.5 py-0.5 border border-[#1e293b] rounded bg-[#0f172a]"
+                        title="Drag Item"
+                    >
+                        ::
+                    </div>
+
+                    <button 
+                        v-if="item.attachments.length > 0 && !item.isArmor"
+                        @click="item.expanded = !item.expanded"
+                        class="text-xs text-[#475569] hover:text-white font-bold w-4 h-4 flex items-center justify-center bg-[#0f172a] rounded border border-[#1e293b]"
+                    >
+                        {{ item.expanded ? '−' : '+' }}
+                    </button>
+                    <div v-else class="w-4"></div>
+
+                    <input 
+                        type="text" 
+                        v-model="item.weapon"
+                        :placeholder="item.isArmor ? 'armor name' : 'weapon ID'" 
+                        :class="['bg-[#0f172a] border focus:outline-none rounded px-3 py-1.5 text-xs font-bold w-40 tracking-wide', item.isArmor ? 'border-amber-500/40 focus:border-amber-500 text-amber-400' : 'border-[#1e293b] focus:border-blue-500 text-white']"
+                        @keydown.enter="addItem"
+                    />
+
+                    <div class="flex items-center gap-2 text-xs">
+                        <button v-if="!item.isArmor" @click="addAttachment(index)" class="text-blue-400 hover:text-blue-300 font-bold text-[11px] uppercase tracking-wide">
+                            +attachment
+                        </button>
+                        <span v-else class="text-amber-500/60 font-bold text-[10px] tracking-widest uppercase bg-amber-950/30 px-2 py-0.5 border border-amber-900/40 rounded-sm">ARMOR ITEM</span>
+                        
+                        <button @click="removeItem(index)" class="text-rose-400 hover:text-rose-300 font-bold text-[11px] uppercase tracking-wide">
+                            remove
+                        </button>
+                    </div>
+                </div>
+
+                <div v-if="item.attachments.length > 0 && item.expanded && !item.isArmor" class="space-y-1 ml-6">
+                    <div v-for="(att, attIndex) in item.attachments" :key="attIndex" class="flex items-center gap-2 py-0.5">
+                        
+                        <span class="text-[#334155] font-bold select-none text-sm pr-1">
+                            {{ attIndex === item.attachments.length - 1 ? '└──' : '├──' }}
+                        </span>
+
+                        <input 
+                            type="text" 
+                            v-model="item.attachments[attIndex]"
+                            placeholder="attachment ID"
+                            class="bg-[#0f172a]/60 border border-[#1e293b] focus:border-blue-500 rounded px-2.5 py-1 text-[11px] text-[#cbd5e1] focus:outline-none placeholder-[#334155] w-32"
+                            @keydown.enter="addAttachment(index)"
+                        />
+
+                        <button 
+                            @click="removeAttachment(index, attIndex)" 
+                            class="w-4 h-4 flex items-center justify-center text-xs font-bold bg-[#111827] border border-rose-500/20 hover:border-rose-500 text-rose-400 rounded hover:bg-rose-500/10 transition-colors"
+                        >
+                            ×
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-2 flex gap-2 items-center">
+                <button 
+                    @click="addItem" 
+                    class="text-[10px] text-[#64748b] hover:text-white border border-dashed border-[#1e293b] hover:border-slate-500 rounded px-3 py-1 bg-transparent font-bold tracking-wider transition-all click-bounce uppercase"
+                >
+                    + ADD ITEM
+                </button>
+                
+                <button 
+                    v-if="mode === 's' && !hasArmor"
+                    @click="addArmorItem" 
+                    class="text-[10px] text-amber-400/80 hover:text-amber-400 border border-dashed border-amber-900/60 hover:border-amber-500 rounded px-3 py-1 bg-transparent font-bold tracking-wider transition-all click-bounce uppercase"
+                >
+                    + ADD ARMOR
+                </button>
+            </div>
+            
+            <div v-if="loadout.length === 0" class="text-left py-6 text-[#475569] text-xs italic select-none">
+                Empty Loadout Container. Append items above to initialize.
+            </div>
+        </main>
+
+        <footer class="fixed bottom-0 left-0 right-0 bg-[#020617] border-t border-[#1e293b] p-4 z-50">
+            <div class="max-w-xl mx-auto flex gap-3 items-center relative">
+                
+                <div class="flex-1 relative h-10">
+                    <input 
+                        type="text" 
+                        readonly 
+                        :value="compiledCommand"
+                        class="w-full bg-[#0f172a] border border-[#1e293b] rounded px-3 py-2 text-emerald-400 text-xs focus:outline-none select-all font-bold h-full whitespace-nowrap overflow-hidden text-ellipsis hover-expand shadow-inner"
+                    />
+                </div>
+                
+                <button 
+                    @click="copyToClipboard" 
+                    :class="['px-6 h-10 rounded font-bold text-xs transition-all click-bounce border shrink-0', copied ? 'bg-emerald-600 border-emerald-500 text-[#020617]' : 'bg-white border-white text-[#020617] hover:bg-slate-200']"
+                >
+                    {{ copied ? 'COPIED' : 'COPY' }}
+                </button>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        const { createApp, ref, computed } = Vue;
+
+        createApp({
+            setup() {
+                const mode = ref('sts');
+                const copied = ref(false);
+                const draggedIndex = ref(null);
+                const importString = ref('');
+                const loadout = ref([]); 
+
+                const hasArmor = computed(() => {
+                    return loadout.value.some(item => item.isArmor);
+                });
+
+                const addItem = () => {
+                    loadout.value.push({ id: Date.now(), weapon: '', attachments: [], expanded: true, isArmor: false });
+                };
+
+                const addArmorItem = () => {
+                    if (mode.value === 's' && !hasArmor.value) {
+                        loadout.value.push({ id: Date.now(), weapon: '', attachments: [], expanded: false, isArmor: true });
+                    }
+                };
+
+                const removeItem = (index) => {
+                    loadout.value.splice(index, 1);
+                };
+
+                const addAttachment = (itemIndex) => {
+                    if (loadout.value[itemIndex].isArmor) return;
+                    loadout.value[itemIndex].attachments.push('');
+                    loadout.value[itemIndex].expanded = true;
+                };
+
+                const removeAttachment = (itemIndex, attIndex) => {
+                    loadout.value[itemIndex].attachments.splice(attIndex, 1);
+                };
+
+                const setMode = (targetMode) => {
+                    mode.value = targetMode;
+                    if (targetMode === 'sts') {
+                        loadout.value = loadout.value.filter(item => !item.isArmor);
+                    }
+                };
+
+                const cleanInput = (str) => {
+                    return str.replace(/\s+/g, '').toLowerCase();
+                };
+
+                /* Drag & Drop Handlers */
+                const onDragStart = (index, event) => {
+                    draggedIndex.value = index;
+                    event.dataTransfer.effectAllowed = 'move';
+                };
+
+                const onDragOver = (index) => {
+                    if (draggedIndex.value === null || draggedIndex.value === index) return;
+                    const items = [...loadout.value];
+                    const targetItem = items.splice(draggedIndex.value, 1)[0];
+                    items.splice(index, 0, targetItem);
+                    loadout.value = items;
+                    draggedIndex.value = index;
+                };
+
+                const onDragEnd = () => { draggedIndex.value = null; };
+                const onDrop = () => { draggedIndex.value = null; };
+
+                /* Decompiler Matrix Parser Logic */
+                const decompileCommand = () => {
+                    let text = importString.value.trim();
+                    if (!text) return;
+
+                    let discoveredArmor = '';
+
+                    // Intercept and isolate custom individual !sa tokens if present
+                    if (text.includes('!sa')) {
+                        const armorMatch = text.match(/!sa\s+([^\s|]+)/);
+                        if (armorMatch) {
+                            discoveredArmor = armorMatch[1];
+                            // Clean command body of the specialized string block
+                            text = text.replace(/!sa\s+[^\s|]+/, '');
+                        }
+                    }
+
+                    if (text.startsWith('!sts')) {
+                        mode.value = 'sts';
+                        text = text.replace(/^!sts\s+/, '');
+                    } else if (text.startsWith('!s')) {
+                        mode.value = 's';
+                        text = text.replace(/!s\s+/g, '').replace(/\s*\|\s*/g, ' ');
+                    } else {
+                        text = text.replace(/^!(setspawn|spawn)\s+/, '');
+                    }
+
+                    const newLoadout = [];
+                    const tokens = text.split(/\s+/);
+
+                    tokens.forEach((token, index) => {
+                        if (!token) return;
+                        const pieces = token.split('+');
+                        const baseName = pieces[0];
+
+                        // Backup detection in case armor name was embedded natively inside typical loops
+                        const isArmorToken = baseName.toLowerCase().includes('armor') && mode.value === 's';
+
+                        newLoadout.push({
+                            id: Date.now() + index,
+                            weapon: baseName,
+                            attachments: isArmorToken ? [] : pieces.slice(1),
+                            expanded: true,
+                            isArmor: isArmorToken
+                        });
+                    });
+
+                    // Mount the intercepted separate !sa component directly if found
+                    if (discoveredArmor && mode.value === 's') {
+                        newLoadout.push({
+                            id: Date.now() + 99,
+                            weapon: discoveredArmor,
+                            attachments: [],
+                            expanded: false,
+                            isArmor: true
+                        });
+                    }
+
+                    if (newLoadout.length > 0) {
+                        let armorFound = false;
+                        const filteredLoadout = newLoadout.filter(item => {
+                            if (item.isArmor) {
+                                if (armorFound) return false;
+                                armorFound = true;
+                            }
+                            return true;
+                        });
+
+                        loadout.value = filteredLoadout;
+                        importString.value = '';
+                    }
+                };
+
+                /* String Assembly Computed Properties Engine */
+                const compiledCommand = computed(() => {
+                    // Separate armor modules out from traditional weapon chains
+                    const weaponModules = loadout.value.filter(item => item.weapon.trim() !== '' && !item.isArmor);
+                    const armorModule = loadout.value.find(item => item.weapon.trim() !== '' && item.isArmor);
+
+                    if (weaponModules.length === 0 && !armorModule) {
+                        return mode.value === 'sts' ? '!sts' : '!s';
+                    }
+
+                    if (mode.value === 'sts') {
+                        const activeUnits = weaponModules.map(item => {
+                            const weapon = cleanInput(item.weapon);
+                            const cleanAtts = item.attachments.filter(a => a.trim() !== '').map(a => cleanInput(a));
+                            return cleanAtts.length > 0 ? `${weapon}+${cleanAtts.join('+')}` : weapon;
+                        });
+                        return `!sts ${activeUnits.join(' ')}`;
+                    } else {
+                        // Assemble spawn items separated cleanly via traditional pipe strings
+                        const activeSpawns = weaponModules.map(item => {
+                            const weapon = cleanInput(item.weapon);
+                            const cleanAtts = item.attachments.filter(a => a.trim() !== '').map(a => cleanInput(a));
+                            return cleanAtts.length > 0 ? `!s ${weapon}+${cleanAtts.join('+')}` : `!s ${weapon}`;
+                        });
+
+                        // Append personalized tracking armor line token matching !sa layout syntax
+                        if (armorModule) {
+                            activeSpawns.push(`!sa ${cleanInput(armorModule.weapon)}`);
+                        }
+
+                        return activeSpawns.join(' | ');
+                    }
+                });
+
+                const copyToClipboard = async () => {
+                    try {
+                        await navigator.clipboard.writeText(compiledCommand.value);
+                        copied.value = true;
+                        setTimeout(() => copied.value = false, 1200);
+                    } catch (err) {
+                        console.error(err);
+                    }
+                };
+
+                return {
+                    mode,
+                    loadout,
+                    copied,
+                    draggedIndex,
+                    importString,
+                    hasArmor,
+                    addItem,
+                    addArmorItem,
+                    removeItem,
+                    addAttachment,
+                    removeAttachment,
+                    setMode,
+                    onDragStart,
+                    onDragOver,
+                    onDragEnd,
+                    onDrop,
+                    decompileCommand,
+                    compiledCommand,
+                    copyToClipboard
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
