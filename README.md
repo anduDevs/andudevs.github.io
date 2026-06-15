@@ -1,3 +1,5 @@
-## Read Below
-Some of my creations are put into this repository, so feel free to check them out!
-This repository is mostly for my website.
+## What's this?
+This repository is mostly made for my web pages.
+
+### More...
+These web pages are made by me, or with the help of AI for parts of the code.
