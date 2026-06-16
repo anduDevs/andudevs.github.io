@@ -11,18 +11,30 @@
         body { font-family: 'JetBrains Mono', monospace; }
         .ghost-card { opacity: 0.15; border: 1px dashed #ffffff !important; }
         .click-bounce:active { transform: scale(0.97); }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #000000;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #222222;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #ffffff;
+        }
     </style>
 </head>
-<body class="bg-[#000000] text-[#ffffff] min-h-screen p-4 md:p-8 pb-32">
+<body class="bg-[#000000] text-[#ffffff] min-h-screen p-4 md:p-8 flex flex-col justify-between">
 
-    <div id="app" class="max-w-xl mx-auto">
+    <div id="app" class="max-w-xl w-full mx-auto flex flex-col h-[calc(100vh-6rem)]">
         
-        <header class="mb-8 flex justify-between items-center gap-4 border-b border-[#222222] pb-6">
-            <div class="bg-[#000000] p-1 border border-[#222222] flex gap-1">
-                <button @click="setMode('sts')" :class="['px-4 py-1 text-xs font-bold transition-all click-bounce', mode === 'sts' ? 'bg-[#ffffff] text-[#000000]' : 'text-[#888888] hover:text-[#ffffff]']">
+        <header class="mb-4 flex justify-between items-center gap-4 border-b border-[#222222] pb-4 shrink-0">
+            <div class="bg-[#000000] p-1 border border-[#222222] flex gap-1 rounded-none">
+                <button @click="setMode('sts')" :class="['px-4 py-1 text-xs font-bold transition-all click-bounce rounded-none', mode === 'sts' ? 'bg-[#ffffff] text-[#000000]' : 'text-[#888888] hover:text-[#ffffff]']">
                     !sts
                 </button>
-                <button @click="setMode('s')" :class="['px-4 py-1 text-xs font-bold transition-all click-bounce', mode === 's' ? 'bg-[#ffffff] text-[#000000]' : 'text-[#888888] hover:text-[#ffffff]']">
+                <button @click="setMode('s')" :class="['px-4 py-1 text-xs font-bold transition-all click-bounce rounded-none', mode === 's' ? 'bg-[#ffffff] text-[#000000]' : 'text-[#888888] hover:text-[#ffffff]']">
                     !s
                 </button>
             </div>
@@ -32,129 +44,131 @@
                     type="text" 
                     v-model="importString" 
                     placeholder="Paste command..." 
-                    class="bg-[#000000] border border-[#222222] focus:border-[#ffffff] text-xs text-[#ffffff] px-2.5 py-1.5 focus:outline-none placeholder-[#555555] font-mono"
+                    class="bg-[#000000] border border-[#222222] focus:border-[#ffffff] text-xs text-[#ffffff] px-2.5 py-1.5 focus:outline-none placeholder-[#555555] font-mono rounded-none"
                     @keydown.enter="decompileCommand"
                 />
-                <button @click="decompileCommand" class="bg-[#111111] hover:bg-[#ffffff] hover:text-[#000000] text-[#ffffff] border border-[#222222] font-bold text-xs px-3 transition-all click-bounce">
+                <button @click="decompileCommand" class="bg-[#111111] hover:bg-[#ffffff] hover:text-[#000000] text-[#ffffff] border border-[#222222] font-bold text-xs px-3 transition-all click-bounce rounded-none">
                     PARSE
                 </button>
             </div>
         </header>
 
-        <main class="space-y-4" @dragover.prevent @drop="onDrop">
-            
-            <div 
-                v-for="(item, index) in loadout" 
-                :key="item.id"
-                :class="['group transition-all border border-[#111111] bg-[#050505] p-3', draggedIndex === index ? 'ghost-card' : '']"
-                @dragover.prevent="onDragOver(index)"
-            >
-                <div class="flex items-center gap-2 py-1">
-                    
-                    <div 
-                        draggable="true"
-                        @dragstart="onDragStart(index, $event)"
-                        @dragend="onDragEnd"
-                        class="text-[#555555] hover:text-[#ffffff] cursor-grab active:cursor-grabbing select-none text-xs font-bold px-1.5 py-0.5 border border-[#222222] bg-[#000000]"
-                        title="Drag Item"
-                    >
-                        ::
-                    </div>
-
-                    <button 
-                        v-if="item.attachments.length > 0 && !item.isArmor"
-                        @click="item.expanded = !item.expanded"
-                        class="text-xs text-[#555555] hover:text-[#ffffff] font-bold w-4 h-4 flex items-center justify-center bg-[#000000] border border-[#222222]"
-                    >
-                        {{ item.expanded ? '−' : '+' }}
-                    </button>
-                    <div v-else class="w-4"></div>
-
-                    <input 
-                        type="text" 
-                        v-model="item.weapon"
-                        :placeholder="item.isArmor ? 'ARMOR NAME' : 'WEAPON NAME'" 
-                        :class="['bg-[#000000] border focus:outline-none px-3 py-1.5 text-xs font-bold w-40 tracking-wide font-mono', item.isArmor ? 'border-[#888888] text-[#888888] focus:border-[#ffffff]' : 'border-[#222222] focus:border-[#ffffff] text-white']"
-                        @keydown.enter="addItem"
-                    />
-
-                    <div class="flex items-center gap-3 text-xs ml-auto">
-                        <button v-if="!item.isArmor" @click="addAttachment(index)" class="text-[#888888] hover:text-[#ffffff] font-bold text-[10px] tracking-wider uppercase">
-                            +ATTACHMENT
-                        </button>
-                        <span v-else class="text-[#888888] font-bold text-[9px] tracking-wider uppercase border border-[#333333] px-2 py-0.5 bg-[#0a0a0a]">ARMOR</span>
+        <div class="flex-1 overflow-y-auto pr-1 custom-scrollbar mb-4">
+            <main class="space-y-4" @dragover.prevent @drop="onDrop">
+                
+                <div 
+                    v-for="(item, index) in loadout" 
+                    :key="item.id"
+                    :class="['group transition-all border border-[#111111] bg-[#050505] p-3 rounded-none', draggedIndex === index ? 'ghost-card' : '']"
+                    @dragover.prevent="onDragOver(index)"
+                >
+                    <div class="flex items-center gap-2 py-1">
                         
-                        <button @click="removeItem(index)" class="text-[#888888] hover:text-[#ff3333] font-bold text-[10px] tracking-wider uppercase">
-                            [REMOVE]
-                        </button>
-                    </div>
-                </div>
+                        <div 
+                            draggable="true"
+                            @dragstart="onDragStart(index, $event)"
+                            @dragend="onDragEnd"
+                            class="text-[#555555] hover:text-[#ffffff] cursor-grab active:cursor-grabbing select-none text-xs font-bold px-1.5 py-0.5 border border-[#222222] bg-[#000000] rounded-none"
+                            title="Drag Item"
+                        >
+                            ::
+                        </div>
 
-                <div v-if="item.attachments.length > 0 && item.expanded && !item.isArmor" class="space-y-1 ml-6 mt-2 pt-2 border-t border-[#111111]">
-                    <div v-for="(att, attIndex) in item.attachments" :key="attIndex" class="flex items-center gap-2 py-0.5">
-                        
-                        <span class="text-[#333333] font-bold select-none text-xs pr-1">
-                            {{ attIndex === item.attachments.length - 1 ? '└──' : '├──' }}
-                        </span>
+                        <button 
+                            v-if="item.attachments.length > 0 && !item.isArmor"
+                            @click="item.expanded = !item.expanded"
+                            class="text-xs text-[#555555] hover:text-[#ffffff] font-bold w-4 h-4 flex items-center justify-center bg-[#000000] border border-[#222222] rounded-none"
+                        >
+                            {{ item.expanded ? '−' : '+' }}
+                        </button>
+                        <div v-else class="w-4"></div>
 
                         <input 
                             type="text" 
-                            v-model="item.attachments[attIndex]"
-                            placeholder="ATTACHMENT NAME"
-                            class="bg-[#000000] border border-[#222222] focus:border-[#ffffff] px-2.5 py-1 text-[11px] text-[#cbd5e1] focus:outline-none placeholder-[#555555] w-32 font-mono"
-                            @keydown.enter="addAttachment(index)"
+                            v-model="item.weapon"
+                            :placeholder="item.isArmor ? 'ARMOR NAME' : 'WEAPON NAME'" 
+                            :class="['bg-[#000000] border focus:outline-none px-3 py-1.5 text-xs font-bold w-40 tracking-wide font-mono rounded-none', item.isArmor ? 'border-[#888888] text-[#888888] focus:border-[#ffffff]' : 'border-[#222222] focus:border-[#ffffff] text-white']"
+                            @keydown.enter="addItem"
                         />
 
-                        <button 
-                            @click="removeAttachment(index, attIndex)" 
-                            class="w-4 h-4 flex items-center justify-center text-xs font-bold bg-[#000000] border border-[#333333] hover:border-[#ff3333] text-[#888888] hover:text-[#ff3333] transition-colors"
-                        >
-                            ×
-                        </button>
+                        <div class="flex items-center gap-3 text-xs ml-auto">
+                            <button v-if="!item.isArmor" @click="addAttachment(index)" class="text-[#888888] hover:text-[#ffffff] font-bold text-[10px] tracking-wider uppercase rounded-none">
+                                +ATTACHMENT
+                            </button>
+                            <span v-else class="text-[#888888] font-bold text-[9px] tracking-wider uppercase border border-[#333333] px-2 py-0.5 bg-[#0a0a0a] rounded-none">ARMOR</span>
+                            
+                            <button @click="removeItem(index)" class="text-[#888888] hover:text-[#ff3333] font-bold text-[10px] tracking-wider uppercase rounded-none">
+                                [REMOVE]
+                            </button>
+                        </div>
+                    </div>
+
+                    <div v-if="item.attachments.length > 0 && item.expanded && !item.isArmor" class="space-y-1 ml-6 mt-2 pt-2 border-t border-[#111111]">
+                        <div v-for="(att, attIndex) in item.attachments" :key="attIndex" class="flex items-center gap-2 py-0.5">
+                            
+                            <span class="text-[#333333] font-bold select-none text-xs pr-1">
+                                {{ attIndex === item.attachments.length - 1 ? '└──' : '├──' }}
+                            </span>
+
+                            <input 
+                                type="text" 
+                                v-model="item.attachments[attIndex]"
+                                placeholder="ATTACHMENT NAME"
+                                class="bg-[#000000] border border-[#222222] focus:border-[#ffffff] px-2.5 py-1 text-[11px] text-[#cbd5e1] focus:outline-none placeholder-[#555555] w-32 font-mono rounded-none"
+                                @keydown.enter="addAttachment(index)"
+                            />
+
+                            <button 
+                                @click="removeAttachment(index, attIndex)" 
+                                class="w-4 h-4 flex items-center justify-center text-xs font-bold bg-[#000000] border border-[#333333] hover:border-[#ff3333] text-[#888888] hover:text-[#ff3333] transition-colors rounded-none"
+                            >
+                                ×
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="pt-2 flex gap-2 items-center">
-                <button 
-                    @click="addItem" 
-                    class="text-[10px] text-[#888888] hover:text-[#ffffff] border border-dashed border-[#222222] hover:border-[#ffffff] px-3 py-1.5 bg-transparent font-bold tracking-widest transition-all click-bounce uppercase"
-                >
-                    + ADD ITEM
-                </button>
+                <div class="pt-2 flex gap-2 items-center">
+                    <button 
+                        @click="addItem" 
+                        class="text-[10px] text-[#888888] hover:text-[#ffffff] border border-dashed border-[#222222] hover:border-[#ffffff] px-3 py-1.5 bg-transparent font-bold tracking-widest transition-all click-bounce uppercase rounded-none"
+                    >
+                        + ADD ITEM
+                    </button>
+                    
+                    <button 
+                        v-if="mode === 's' && !hasArmor"
+                        @click="addArmorItem" 
+                        class="text-[10px] text-[#888888] hover:text-[#ffffff] border border-dashed border-[#222222] hover:border-[#ffffff] px-3 py-1.5 bg-transparent font-bold tracking-widest transition-all click-bounce uppercase rounded-none"
+                    >
+                        + ADD ARMOR
+                    </button>
+                </div>
                 
-                <button 
-                    v-if="mode === 's' && !hasArmor"
-                    @click="addArmorItem" 
-                    class="text-[10px] text-[#888888] hover:text-[#ffffff] border border-dashed border-[#222222] hover:border-[#ffffff] px-3 py-1.5 bg-transparent font-bold tracking-widest transition-all click-bounce uppercase"
-                >
-                    + ADD ARMOR
-                </button>
-            </div>
-            
-            <div v-if="loadout.length === 0" class="text-left py-12 border border-dashed border-[#222222] text-[#555555] text-xs uppercase tracking-widest select-none pl-4">
-                LOADOUT EMPTY
-            </div>
-        </main>
+                <div v-if="loadout.length === 0" class="text-left py-12 border border-dashed border-[#222222] text-[#555555] text-xs uppercase tracking-widest select-none pl-4 rounded-none">
+                    LOADOUT EMPTY
+                </div>
+            </main>
+        </div>
 
-        <footer class="fixed bottom-0 left-0 right-0 bg-[#000000] border-t border-[#222222] p-4 z-50">
-            <div class="max-w-xl mx-auto flex gap-3 items-center relative">
+        <footer class="bg-[#000000] border-t border-[#222222] pt-4 pb-2 shrink-0">
+            <div class="flex gap-3 items-center relative">
                 
                 <div class="flex-1 relative h-10 group">
                     <input 
                         type="text" 
                         readonly 
                         :value="compiledCommand"
-                        class="w-full bg-[#050505] border border-[#222222] text-[#ffffff] text-xs focus:outline-none select-all font-bold h-full whitespace-nowrap overflow-hidden text-ellipsis font-mono px-3"
+                        class="w-full bg-[#050505] border border-[#222222] text-[#ffffff] text-xs focus:outline-none select-all font-bold h-full whitespace-nowrap overflow-hidden text-ellipsis font-mono px-3 rounded-none"
                     />
-                    <div class="hidden group-hover:block absolute bottom-0 left-0 w-full bg-[#000000] border border-[#ffffff] text-[#ffffff] text-xs font-bold font-mono p-3 z-50 select-all break-all whitespace-pre-wrap max-h-32 overflow-y-auto">
+                    <div class="hidden group-hover:block absolute bottom-12 left-0 w-full bg-[#000000] border border-[#ffffff] text-[#ffffff] text-xs font-bold font-mono p-3 z-50 select-all break-all whitespace-pre-wrap max-h-32 overflow-y-auto rounded-none">
                         {{ compiledCommand }}
                     </div>
                 </div>
                 
                 <button 
                     @click="copyToClipboard" 
-                    :class="['px-6 h-10 font-bold text-xs transition-all click-bounce border shrink-0', copied ? 'bg-[#ffffff] border-[#ffffff] text-[#000000]' : 'bg-[#000000] border-[#222222] text-[#ffffff] hover:bg-[#111111] hover:border-[#ffffff]']"
+                    :class="['px-6 h-10 font-bold text-xs transition-all click-bounce border shrink-0 rounded-none', copied ? 'bg-[#ffffff] border-[#ffffff] text-[#000000]' : 'bg-[#000000] border-[#222222] text-[#ffffff] hover:bg-[#111111] hover:border-[#ffffff]']"
                 >
                     {{ copied ? 'COPIED' : 'COPY' }}
                 </button>
