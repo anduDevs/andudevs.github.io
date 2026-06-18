@@ -25,7 +25,7 @@
         }
     </style>
 </head>
-<body class="bg-[#000000] text-[#ffffff] min-h-screen p-4 md:p-8 flex flex-col justify-between">
+<body class="bg-[#000000] text-[#ffffff] min-h-screen p-4 md:p-8 flex flex-col justify-between selection:bg-[#ffffff] selection:text-[#000000]">
 
     <div id="app" class="max-w-xl w-full mx-auto flex flex-col h-[calc(100vh-6rem)]">
         
@@ -59,7 +59,7 @@
                 <div 
                     v-for="(item, index) in loadout" 
                     :key="item.id"
-                    :class="['group transition-all border border-[#111111] bg-[#050505] p-3 rounded-none', draggedIndex === index ? 'ghost-card' : '']"
+                    :class="['group transition-all border border-[#111111] bg-[#050505] p-3 rounded-none relative', draggedIndex === index ? 'ghost-card' : '']"
                     @dragover.prevent="onDragOver(index)"
                 >
                     <div class="flex items-center gap-2 py-1">
@@ -83,13 +83,38 @@
                         </button>
                         <div v-else class="w-4"></div>
 
-                        <input 
-                            type="text" 
-                            v-model="item.weapon"
-                            :placeholder="item.isArmor ? 'ARMOR NAME' : 'WEAPON NAME'" 
-                            :class="['bg-[#000000] border focus:outline-none px-3 py-1.5 text-xs font-bold w-40 tracking-wide font-mono rounded-none', item.isArmor ? 'border-[#888888] text-[#888888] focus:border-[#ffffff]' : 'border-[#222222] focus:border-[#ffffff] text-white']"
-                            @keydown.enter="addItem"
-                        />
+                        <div class="relative w-40">
+                            <input 
+                                type="text" 
+                                v-model="item.weapon"
+                                @focus="setFocusedField(index, 'weapon', null)"
+                                @blur="clearFocusedField"
+                                :placeholder="item.isArmor ? 'ARMOR NAME' : 'WEAPON NAME'" 
+                                :class="['bg-[#000000] border focus:outline-none px-3 py-1.5 text-xs font-bold w-full tracking-wide font-mono rounded-none', 
+                                    item.isArmor ? 'border-[#888888] text-[#888888] focus:border-[#ffffff]' : 
+                                    (isInvalidWeapon(item.weapon) ? 'border-red-600 text-red-400 focus:border-red-500' : 'border-[#222222] focus:border-[#ffffff] text-white')
+                                ]"
+                                @keydown.enter="addItem"
+                            />
+                            <div v-if="!item.isArmor && isInvalidWeapon(item.weapon)" class="absolute right-2.5 top-2 group/tooltip cursor-help">
+                                <span class="text-red-500 font-bold text-xs">!</span>
+                                <div class="hidden group-hover/tooltip:block absolute bottom-6 left-1/2 -translate-x-1/2 bg-[#111111] border border-red-600 text-red-400 text-[10px] p-2 whitespace-nowrap z-50">
+                                    Weapon may not exist
+                                </div>
+                            </div>
+                            
+                            <div v-if="isFieldFocused(index, 'weapon', null) && getSuggestions(item.weapon, 'weapon').length > 0" class="absolute left-0 top-full w-full bg-[#050505] border border-[#ffffff] z-50 max-h-32 overflow-y-auto">
+                                <div 
+                                    v-for="sug in getSuggestions(item.weapon, 'weapon')" 
+                                    :key="sug.name"
+                                    @mousedown.prevent="selectSuggestion(index, 'weapon', null, sug.name)"
+                                    :class="['px-2 py-1.5 text-[11px] font-mono hover:bg-[#ffffff] hover:text-[#000000] cursor-pointer flex justify-between items-center', sug.gamepass ? 'text-yellow-400' : 'text-white']"
+                                >
+                                    <span>{{ sug.name }}</span>
+                                    <span v-if="sug.gamepass" class="text-[8px] border border-yellow-500 text-yellow-400 px-1 font-sans">GP</span>
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="flex items-center gap-3 text-xs ml-auto">
                             <button v-if="!item.isArmor" @click="addAttachment(index)" class="text-[#888888] hover:text-[#ffffff] font-bold text-[10px] tracking-wider uppercase rounded-none">
@@ -104,19 +129,42 @@
                     </div>
 
                     <div v-if="item.attachments.length > 0 && item.expanded && !item.isArmor" class="space-y-1 ml-6 mt-2 pt-2 border-t border-[#111111]">
-                        <div v-for="(att, attIndex) in item.attachments" :key="attIndex" class="flex items-center gap-2 py-0.5">
+                        <div v-for="(att, attIndex) in item.attachments" :key="attIndex" class="flex items-center gap-2 py-0.5 relative">
                             
                             <span class="text-[#333333] font-bold select-none text-xs pr-1">
                                 {{ attIndex === item.attachments.length - 1 ? '└──' : '├──' }}
                             </span>
 
-                            <input 
-                                type="text" 
-                                v-model="item.attachments[attIndex]"
-                                placeholder="ATTACHMENT NAME"
-                                class="bg-[#000000] border border-[#222222] focus:border-[#ffffff] px-2.5 py-1 text-[11px] text-[#cbd5e1] focus:outline-none placeholder-[#555555] w-32 font-mono rounded-none"
-                                @keydown.enter="addAttachment(index)"
-                            />
+                            <div class="relative w-32">
+                                <input 
+                                    type="text" 
+                                    v-model="item.attachments[attIndex]"
+                                    @focus="setFocusedField(index, 'attachment', attIndex)"
+                                    @blur="clearFocusedField"
+                                    placeholder="ATTACH_NAME"
+                                    :class="['bg-[#000000] border focus:outline-none px-2.5 py-1 text-[11px] focus:outline-none placeholder-[#555555] w-full font-mono rounded-none',
+                                        isInvalidAttachment(item.attachments[attIndex]) ? 'border-red-600 text-red-400 focus:border-red-500' : 'border-[#222222] focus:border-[#ffffff] text-[#cbd5e1]'
+                                    ]"
+                                    @keydown.enter="addAttachment(index)"
+                                />
+                                <div v-if="isInvalidAttachment(item.attachments[attIndex])" class="absolute right-2 top-1.5 group/tooltip cursor-help">
+                                    <span class="text-red-500 font-bold text-[10px]">!</span>
+                                    <div class="hidden group-hover/tooltip:block absolute bottom-6 left-1/2 -translate-x-1/2 bg-[#111111] border border-red-600 text-red-400 text-[10px] p-2 whitespace-nowrap z-50">
+                                        Attachment may not exist
+                                    </div>
+                                </div>
+
+                                <div v-if="isFieldFocused(index, 'attachment', attIndex) && getSuggestions(item.attachments[attIndex], 'attachment').length > 0" class="absolute left-0 top-full w-full bg-[#050505] border border-[#ffffff] z-50 max-h-32 overflow-y-auto">
+                                    <div 
+                                        v-for="sug in getSuggestions(item.attachments[attIndex], 'attachment')" 
+                                        :key="sug"
+                                        @mousedown.prevent="selectSuggestion(index, 'attachment', attIndex, sug)"
+                                        class="px-2 py-1 text-[10px] font-mono hover:bg-[#ffffff] hover:text-[#000000] cursor-pointer"
+                                    >
+                                        {{ sug }}
+                                    </div>
+                                </div>
+                            </div>
 
                             <button 
                                 @click="removeAttachment(index, attIndex)" 
@@ -168,7 +216,7 @@
                 
                 <button 
                     @click="copyToClipboard" 
-                    :class="['px-6 h-10 font-bold text-xs transition-all click-bounce border shrink-0 rounded-none', copied ? 'bg-[#ffffff] border-[#ffffff] text-[#000000]' : 'bg-[#000000] border-[#222222] text-[#ffffff] hover:bg-[#111111] hover:border-[#ffffff]']"
+                    :class="['px-6 h-10 font-bold text-xs transition-all click-bounce border shrink-0', copied ? 'bg-[#ffffff] border-[#ffffff] text-[#000000]' : 'bg-[#000000] border-[#222222] text-[#ffffff] hover:bg-[#111111] hover:border-[#ffffff]']"
                 >
                     {{ copied ? 'COPIED' : 'COPY' }}
                 </button>
@@ -187,6 +235,155 @@
                 const draggedIndex = ref(null);
                 const importString = ref('');
                 const loadout = ref([]); 
+                const focusedField = ref({ index: null, type: null, attIndex: null });
+
+                // List of weapons in the game, may become outdated if the game updates.
+                const wikiWeapons = [
+                    { name: 'AK-47', gamepass: false },
+                    { name: 'AK-15', gamepass: false },
+                    { name: 'AUG A3', gamepass: false },
+                    { name: 'ShAK-12', gamepass: true },
+                    { name: 'FAIL', gamepass: true },
+                    { name: 'FAMAS G2', gamepass: false },
+                    { name: 'Groza-4', gamepass: true },
+                    { name: 'G36C', gamepass: false },
+                    { name: 'HK416', gamepass: false },
+                    { name: 'L85A2', gamepass: false },
+                    { name: 'M16A2', gamepass: false },
+                    { name: 'M16A1', gamepass: false },
+                    { name: 'M4 Carbine', gamepass: false },
+                    { name: 'MCX', gamepass: false },
+                    { name: 'MK18', gamepass: false },
+                    { name: 'QBZ-95', gamepass: false },
+                    { name: 'SCAR-L', gamepass: false },
+                    { name: 'SG-552 Commando', gamepass: false },
+                    { name: 'SOPMOD Block II', gamepass: false },
+                    { name: 'Tumor Growth', gamepass: false },
+                    { name: 'AS VAL', gamepass: false },
+                    { name: 'G3A3', gamepass: false },
+                    { name: 'M14 BR', gamepass: false },
+                    { name: 'M1 Garand', gamepass: false },
+                    { name: 'MK 17 CQC', gamepass: false },
+                    { name: 'RFB', gamepass: false },
+                    { name: 'SCAR-H', gamepass: false },
+                    { name: 'FN FAL', gamepass: true },
+                    { name: 'L2A1 SLR', gamepass: true },
+                    { name: 'XM7', gamepass: false },
+                    { name: 'XM7-A', gamepass: false },
+                    { name: 'Dragunov SVD', gamepass: false },
+                    { name: 'QBU-88', gamepass: false },
+                    { name: 'MK-11', gamepass: false },
+                    { name: 'Fire Axe', gamepass: false },
+                    { name: 'Hammer', gamepass: false },
+                    { name: 'Pickaxe', gamepass: false },
+                    { name: 'Shovel', gamepass: true },
+                    { name: 'Crowbar', gamepass: false },
+                    { name: 'Stick', gamepass: false },
+                    { name: 'Katana', gamepass: true },
+                    { name: 'Zweihander', gamepass: true },
+                    { name: 'Linked Sword', gamepass: true },
+                    { name: 'Scrap axe', gamepass: false },
+                    { name: 'Baton', gamepass: true },
+                    { name: 'Combat knife', gamepass: false },
+                    { name: 'Bayonet', gamepass: false },
+                    { name: 'MG4', gamepass: false },
+                    { name: 'RPK', gamepass: false },
+                    { name: 'RPK-74', gamepass: false },
+                    { name: 'Lewis Automatic Rifle', gamepass: false },
+                    { name: 'Colt LMG', gamepass: false },
+                    { name: 'AG-19', gamepass: false },
+                    { name: 'Classic Pistol', gamepass: true },
+                    { name: 'CZ-75', gamepass: false },
+                    { name: 'Cowboy Gun', gamepass: true },
+                    { name: 'Desert Eagle', gamepass: false },
+                    { name: 'Desert Eagle XIX', gamepass: false },
+                    { name: 'Five SeveN', gamepass: false },
+                    { name: 'HW Cappa', gamepass: false },
+                    { name: 'Luger P08', gamepass: true },
+                    { name: 'Magnum Revolver', gamepass: false },
+                    { name: 'Makarov', gamepass: false },
+                    { name: 'MP443', gamepass: false },
+                    { name: 'M1911', gamepass: false },
+                    { name: 'M9', gamepass: false },
+                    { name: 'P226', gamepass: false },
+                    { name: 'Python', gamepass: false },
+                    { name: 'Speed-Six', gamepass: false },
+                    { name: 'UNICA 6', gamepass: true },
+                    { name: 'SW 500', gamepass: false },
+                    { name: 'RMK2', gamepass: false },
+                    { name: 'WA M99', gamepass: false },
+                    { name: 'USP MK23', gamepass: false },
+                    { name: 'USP Match', gamepass: false },
+                    { name: 'Zip .22', gamepass: true },
+                    { name: 'The Old One', gamepass: true },
+                    { name: 'AG-18c', gamepass: false },
+                    { name: 'MAC-10', gamepass: false },
+                    { name: 'Maxim 9', gamepass: false },
+                    { name: 'MP5K', gamepass: false },
+                    { name: 'TMP', gamepass: false },
+                    { name: 'Double Barrel', gamepass: true },
+                    { name: 'HW Pulper', gamepass: true },
+                    { name: 'Ithaca 37 Stakeout', gamepass: true },
+                    { name: 'Olympia', gamepass: true },
+                    { name: 'M26 MASS', gamepass: true },
+                    { name: 'M37 Featherweight', gamepass: false },
+                    { name: 'M870', gamepass: false },
+                    { name: 'DMK-12', gamepass: false },
+                    { name: 'Saiga-12K', gamepass: true },
+                    { name: 'SPAS-12', gamepass: true },
+                    { name: 'UTS-15', gamepass: true },
+                    { name: 'Pipe Shotgun', gamepass: false },
+                    { name: 'Intervention', gamepass: false },
+                    { name: 'JNG-90', gamepass: false },
+                    { name: 'L96A1', gamepass: false },
+                    { name: 'Lee Enfield', gamepass: false },
+                    { name: 'R700', gamepass: false },
+                    { name: 'Steyr Elite', gamepass: false },
+                    { name: 'Walther WA2000', gamepass: true },
+                    { name: 'Barrett M82A3', gamepass: true },
+                    { name: 'GM6 Lynx', gamepass: true },
+                    { name: 'HW Jolt', gamepass: false },
+                    { name: 'Kriss Vector', gamepass: true },
+                    { name: 'Kriss Vector Gen2', gamepass: true },
+                    { name: 'M1921 Thompson', gamepass: true },
+                    { name: 'draco', gamepass: false },
+                    { name: 'MP40', gamepass: false },
+                    { name: 'MP5A2', gamepass: false },
+                    { name: 'MP7', gamepass: false },
+                    { name: 'MPX', gamepass: false },
+                    { name: 'PP2000', gamepass: true },
+                    { name: 'P90', gamepass: false },
+                    { name: 'Scorpion EVO', gamepass: true },
+                    { name: 'SR-2', gamepass: false },
+                    { name: 'SR-3 Vikhr', gamepass: false },
+                    { name: 'UMP-45', gamepass: false },
+                    { name: 'Uzi', gamepass: false },
+                    { name: 'PPSH-41', gamepass: false },
+                    { name: 'Honey Badger', gamepass: false },
+                    { name: 'CQ300 Lynx', gamepass: true },
+                    { name: 'AR-10', gamepass: false },
+                    { name: 'AR-15', gamepass: false },
+                    { name: 'HW Spear', gamepass: false },
+                    { name: 'SKS', gamepass: false },
+                    { name: 'Model 1777 Musket', gamepass: false },
+                    { name: 'Bryson Repeater', gamepass: false },
+                    { name: 'Saddlegun', gamepass: false }
+                ];
+
+                const wikiAttachments = [
+                    'ACOG Sight', 'AEMS Sight', 'CCO M68', 'CL6X Sight', 'Coyote Sight', 'EOTech Sight', 
+                    'Holosun 507c', 'Hunting Scope', 'JGM4 Sight', 'Kobra Sight', 'M145 Sight', 'Professional Scope', 
+                    'PSO-1 Scope', 'Reflex Sight', 'SRS Sight', 'Scrap Sight', 'Angled Grip', 'Bipod', 
+                    'DD Grip', 'Ergo Grip', 'Folding Grip', 'Hera CQR Front Grip', 'MOE Grip', 'Offset RK-2 Foregrip', 
+                    'RK-6 Short Grip', 'RSB Grip', 'SE Elite Grip', 'Skeleton Grip', 'Strike Grip', 'Compensator', 
+                    'Flash Hider', 'Heavy Suppressor', 'Muzzle Brake', 'Oil Filter', 'Osprey Suppressor', 
+                    'SLR Compensator', 'Short Suppressor', 'Suppressor', 'TAA Muzzle Brake', 'Wide Choke', 
+                    'MK23 Suppressor', 'PBS Suppressor', 'Lasers (Red, Blue, Green)', 'Flashlight', 'NGAL', 
+                    'Rangefinder', 'Red Laser', 'Blue Laser', 'Green Laser', 'TLR-7', 'Laser MK23', 'Inforce Light', 
+                    'Extended Stock'
+                ];
+
+                const wikiArmors = ['heavyarmor', 'lightarmor', 'armor', 'mediumarmor'];
 
                 const hasArmor = computed(() => {
                     return loadout.value.some(item => item.isArmor);
@@ -225,6 +422,59 @@
 
                 const cleanInput = (str) => {
                     return str.replace(/\s+/g, '').toLowerCase();
+                };
+
+                const isInvalidWeapon = (name) => {
+                    if (!name.trim()) return false;
+                    const clean = cleanInput(name);
+                    return !wikiWeapons.some(w => cleanInput(w.name) === clean || w.name.toLowerCase() === name.toLowerCase().trim());
+                };
+
+                const isInvalidAttachment = (name) => {
+                    if (!name.trim()) return false;
+                    const clean = cleanInput(name);
+                    return !wikiAttachments.some(a => cleanInput(a) === clean || a.toLowerCase() === name.toLowerCase().trim());
+                };
+
+                const setFocusedField = (index, type, attIndex) => {
+                    focusedField.value = { index, type, attIndex };
+                };
+
+                const clearFocusedField = () => {
+                    setTimeout(() => {
+                        focusedField.value = { index: null, type: null, attIndex: null };
+                    }, 200);
+                };
+
+                const isFieldFocused = (index, type, attIndex) => {
+                    return focusedField.value.index === index && 
+                           focusedField.value.type === type && 
+                           focusedField.value.attIndex === attIndex;
+                };
+
+                const getSuggestions = (query, type) => {
+                    if (!query.trim()) return [];
+                    const cleanQuery = cleanInput(query);
+                    if (type === 'weapon') {
+                        return wikiWeapons.filter(item => {
+                            const cleanItem = cleanInput(item.name);
+                            return cleanItem.includes(cleanQuery) && cleanItem !== cleanQuery;
+                        }).slice(0, 5);
+                    } else {
+                        return wikiAttachments.filter(item => {
+                            const cleanItem = cleanInput(item);
+                            return cleanItem.includes(cleanQuery) && cleanItem !== cleanQuery;
+                        }).slice(0, 5);
+                    }
+                };
+
+                const selectSuggestion = (index, type, attIndex, value) => {
+                    if (type === 'weapon') {
+                        loadout.value[index].weapon = value;
+                    } else if (type === 'attachment') {
+                        loadout.value[index].attachments[attIndex] = value;
+                    }
+                    focusedField.value = { index: null, type: null, attIndex: null };
                 };
 
                 const onDragStart = (index, event) => {
@@ -365,6 +615,13 @@
                     addAttachment,
                     removeAttachment,
                     setMode,
+                    isInvalidWeapon,
+                    isInvalidAttachment,
+                    setFocusedField,
+                    clearFocusedField,
+                    isFieldFocused,
+                    getSuggestions,
+                    selectSuggestion,
                     onDragStart,
                     onDragOver,
                     onDragEnd,
